@@ -17,6 +17,9 @@ const DCSerializations = new Enum(['binary', 'binary-utf8', 'json', 'none']);
 /**
  * Class that manages data connections to other peers.
  * @extends Connection
+ * @property {string} _idPrefix
+ * @property {string} type
+ * @property {boolean} _isOnOpenCalled
  */
 class DataConnection extends Connection {
   /**
