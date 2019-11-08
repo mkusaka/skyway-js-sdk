@@ -42,7 +42,7 @@ module.exports = config =>
       reporters: [{ type: 'html' }, { type: 'text' }],
     },
 
-    browsers: ['Chrome', 'ChromeHeadless', 'ChromeHeadlessNoSandbox'],
+    browsers: ['ChromeHeadlessNoSandbox'],
     customLaunchers: {
       ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
