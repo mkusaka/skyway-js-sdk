@@ -3,16 +3,20 @@ const webpackConfig = require('./webpack.config');
 webpackConfig.mode = 'none';
 // still need Babel to use inject-loader
 webpackConfig.module.rules.push({
-  test: /\.js$/,
+  test: /\.(js|ts)$/,
   exclude: /node_modules/,
   use: {
     loader: 'babel-loader',
     options: {
-      presets: ['es2015'],
-      plugins: ['babel-plugin-espower', 'istanbul'],
+      presets: ['es2015', '@babel/preset-typescript'],
+      plugins: [
+        'babel-plugin-espower',
+        'istanbul'
+      ],
     },
   },
 });
+
 // enable-sourcemap
 webpackConfig.devtool = 'inline-source-map';
 

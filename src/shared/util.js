@@ -3,7 +3,7 @@ import { detect } from 'detect-browser';
 /**
  * Validate the Peer ID format.
  * @param {string} [id] - A Peer ID.
- * @return {boolean} True if the peerId format is valid. False if not.
+ * @return {boolean|RegExpExecArray} True if the peerId format is valid. False if not.
  */
 function validateId(id) {
   // Allow empty ids
@@ -13,7 +13,7 @@ function validateId(id) {
 /**
  * Validate the API key.
  * @param {string} [key] A SkyWay API key.
- * @return {boolean} True if the API key format is valid. False if not.
+ * @return {boolean|RegExpExecArray} True if the API key format is valid. False if not.
  */
 function validateKey(key) {
   // Allow empty keys
@@ -84,7 +84,12 @@ function isSecure() {
 
 /**
  * Detect browser name and version.
- * @return {Object} Browser name and major, minor and patch versions. Object is empty if info can't be obtained.
+ * @typedef {Object} browserInfo
+ * @property {string} name
+ * @property {number} major
+ * @property {number} minor
+ * @property {number} patch
+ * @return {browserInfo} Browser name and major, minor and patch versions. Object is empty if info can't be obtained.
  */
 function detectBrowser() {
   const { name, version } = detect();

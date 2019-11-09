@@ -84,9 +84,9 @@ describe('Util', () => {
   });
 
   describe('isSecure', () => {
-    // Test only 'HTTP' becauuse Karma only runs on 'HTTP'
+    // Test only 'HTTP' because Karma only runs on 'HTTP'
     it('should return false if HTTP', () => {
-      assert(util.isSecure(location.protocol) === false);
+      assert(util.isSecure() === false);
     });
   });
 

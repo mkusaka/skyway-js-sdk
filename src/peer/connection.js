@@ -15,16 +15,26 @@ const ConnectionEvents = new Enum([
 ]);
 
 /**
+ * @typedef {object} OptionType
+ * @property {string} [OptionType.connectionId] - An ID to uniquely identify the connection.
+ *                                                Defaults to random string if not specified.
+ * @property {object} [optionType.metadata]
+ */
+
+/**
  * Class that manages connections to other peers.
  * @extends EventEmitter
+ * @property {OptionType} _options
+ * @property {boolean} open
+ * @property {string} [type]
+ * @property {OptionType} metadata
+ * @property {boolean} _pcAvailable
  */
 class Connection extends EventEmitter {
   /**
    * Create a connection to another peer. Cannot be called directly. Must be called by a subclass.
    * @param {string} remoteId - The peerId of the peer you are connecting to.
-   * @param {object} [options] - Optional arguments for the connection.
-   * @param {string} [options.connectionId] - An ID to uniquely identify the connection.
-   *                                          Defaults to random string if not specified.
+   * @param {OptionType} [options] - Optional arguments for the connection.
    */
   constructor(remoteId, options) {
     super();

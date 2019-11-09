@@ -4,7 +4,7 @@ module.exports = {
     sourceType: 'module',
   },
   plugins: ['prettier'],
-  extends: ['eslint:recommended', 'prettier'],
+  extends: ['eslint:recommended', 'prettier', 'prettier/@typescript-eslint'],
   rules: {
     // prettier
     'prettier/prettier': [
@@ -31,4 +31,5 @@ module.exports = {
   globals: {
     RTCRtpTransceiver: true,
   },
+  parser: '@typescript-eslint/parser',
 };

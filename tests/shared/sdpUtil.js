@@ -418,6 +418,7 @@ a=ssrc:3344931084 cname:{71eaeac1-5ffa-184a-bdb6-96356857d252}
     it('should throw error when bandwidth is not Number', () => {
       const illegalArgument = 'hogehoge';
       try {
+        // @ts-ignore
         sdpUtil.addVideoBandwidth(chromeSdpSingleStream, illegalArgument);
       } catch (e) {
         assert(e instanceof Error);
@@ -427,6 +428,7 @@ a=ssrc:3344931084 cname:{71eaeac1-5ffa-184a-bdb6-96356857d252}
 
     it('should throw error when bandwidth is not passed', () => {
       try {
+        // @ts-ignore
         sdpUtil.addVideoBandwidth(chromeSdpSingleStream);
       } catch (e) {
         assert(e instanceof Error);
@@ -623,6 +625,7 @@ a=ssrc:3344931084 cname:{71eaeac1-5ffa-184a-bdb6-96356857d252}
 
     it('should throw error when codec is not passed', () => {
       try {
+        // @ts-ignore
         sdpUtil.filterAudioCodec(chromeSdpSingleStream);
       } catch (e) {
         assert(e instanceof Error);
