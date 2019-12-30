@@ -8,7 +8,7 @@ webpackConfig.module.rules.push({
   use: {
     loader: 'babel-loader',
     options: {
-      presets: ['es2015', '@babel/preset-typescript'],
+      presets: ['@babel/preset-env', '@babel/preset-typescript'],
       plugins: [
         'babel-plugin-espower',
         'istanbul'
