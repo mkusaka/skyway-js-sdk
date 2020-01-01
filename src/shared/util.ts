@@ -1,11 +1,11 @@
-import { detect } from 'detect-browser';
+import { detect, BrowserInfo } from 'detect-browser';
 
 /**
  * Validate the Peer ID format.
  * @param {string} [id] - A Peer ID.
  * @return {boolean|RegExpExecArray} True if the peerId format is valid. False if not.
  */
-function validateId(id) {
+function validateId(id: string) {
   // Allow empty ids
   return !id || /^[A-Za-z0-9_-]+(?:[ _-][A-Za-z0-9]+)*$/.exec(id);
 }
@@ -15,7 +15,7 @@ function validateId(id) {
  * @param {string} [key] A SkyWay API key.
  * @return {boolean|RegExpExecArray} True if the API key format is valid. False if not.
  */
-function validateKey(key) {
+function validateKey(key: string) {
   // Allow empty keys
   return !key || /^[a-z0-9]{8}(-[a-z0-9]{4}){3}-[a-z0-9]{12}$/.exec(key);
 }
@@ -45,10 +45,10 @@ function randomToken() {
 
 /**
  * Combine the sliced ArrayBuffers.
- * @param {Array} buffers - An Array of ArrayBuffer.
- * @return {ArrayBuffer} The combined ArrayBuffer.
+ * @param buffers - An Array of ArrayBuffer.
+ * @return The combined ArrayBuffer.
  */
-function joinArrayBuffers(buffers) {
+function joinArrayBuffers(buffers: ArrayBuffer[]) {
   const size = buffers.reduce((sum, buffer) => {
     return sum + buffer.byteLength;
   }, 0);
@@ -66,10 +66,10 @@ function joinArrayBuffers(buffers) {
  * @param {Blob} blob - The Blob to be read as ArrayBuffer.
  * @param {Function} cb - Callback function that called after load event fired.
  */
-function blobToArrayBuffer(blob, cb) {
+function blobToArrayBuffer(blob: Blob, cb: Function) {
   const fr = new FileReader();
   fr.onload = event => {
-    cb(event.target.result);
+    cb(event?.target?.result);
   };
   fr.readAsArrayBuffer(blob);
 }
@@ -84,15 +84,11 @@ function isSecure() {
 
 /**
  * Detect browser name and version.
- * @typedef {Object} browserInfo
- * @property {string} name
- * @property {number} major
- * @property {number} minor
- * @property {number} patch
- * @return {browserInfo} Browser name and major, minor and patch versions. Object is empty if info can't be obtained.
+ * @return Browser name and major, minor and patch versions. Object is empty if info can't be obtained.
  */
 function detectBrowser() {
-  const { name, version } = detect();
+  // FIXME: unespected cast BrowserInfo. detect() returns nullable.
+  const { name, version } = detect() as BrowserInfo;
   const [major, minor, patch] = version.split('.').map(i => parseInt(i));
   return {
     name,
@@ -110,7 +106,8 @@ function detectBrowser() {
  * @return {boolean} Browser is plan-b Safari or NOT
  */
 function isPlanBSafari() {
-  const { name } = detect();
+  // FIXME: unespected cast BrowserInfo. detect() returns nullable.
+  const { name } = detect() as BrowserInfo;
 
   // safari for macOS, ios for iOS
   if (!(name === 'safari' || name === 'ios')) {
