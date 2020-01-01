@@ -9,10 +9,7 @@ webpackConfig.module.rules.push({
     loader: 'babel-loader',
     options: {
       presets: ['@babel/preset-env', '@babel/preset-typescript'],
-      plugins: [
-        'babel-plugin-espower',
-        'istanbul'
-      ],
+      plugins: ['babel-plugin-espower', 'istanbul'],
     },
   },
 });

@@ -18,10 +18,10 @@ const config = {
         test: /\.(ts|js)$/,
         use: [
           {
-            loader: 'babel-loader'
-          }
-        ]
-      }
+            loader: 'babel-loader',
+          },
+        ],
+      },
     ],
   },
   plugins: [
