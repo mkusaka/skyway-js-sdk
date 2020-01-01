@@ -5,6 +5,7 @@ import Negotiator from './negotiator';
 import util from '../shared/util';
 import logger from '../shared/logger';
 import config from '../shared/config';
+import DataConnection from './dataConnection';
 
 const ConnectionEvents = new Enum([
   'candidate',
@@ -13,6 +14,17 @@ const ConnectionEvents = new Enum([
   'close',
   'forceClose',
 ]);
+
+interface IConnectionOffer {
+  offer: any;
+  dst: string;
+  connectionId: string;
+  connectionType?: string;
+  metadata: any;
+  serialization?: DataConnection;
+  label?: any;
+  dcInit?: any;
+};
 
 /**
  * @typedef {object} OptionType
@@ -31,12 +43,25 @@ const ConnectionEvents = new Enum([
  * @property {boolean} _pcAvailable
  */
 class Connection extends EventEmitter {
+  public _options: any;
+  public open: boolean;
+  public type?: string;
+  public metadata: any;
+  public remoteId: string;
+  private _negotiator: Negotiator;
+  public _idPrefix: string;
+  private _randomIdSuffix: string;
+  private _pcAvailable: any;
+  private _queuedMessages: any;
+  public serialization?: DataConnection;
+  public dcInit: any;
+  public label: any;
   /**
    * Create a connection to another peer. Cannot be called directly. Must be called by a subclass.
    * @param {string} remoteId - The peerId of the peer you are connecting to.
    * @param {OptionType} [options] - Optional arguments for the connection.
    */
-  constructor(remoteId, options) {
+  constructor(remoteId: string, options: any) {
     super();
 
     options = options || {};
@@ -83,7 +108,7 @@ class Connection extends EventEmitter {
   /**
    * An id to uniquely identify the connection.
    */
-  get id() {
+  get id(): string {
     return this._options.connectionId || this._idPrefix + this._randomIdSuffix;
   }
 
@@ -91,7 +116,7 @@ class Connection extends EventEmitter {
    * Handle an sdp answer message from the remote peer.
    * @param {object} answerMessage - Message object containing sdp answer.
    */
-  async handleAnswer(answerMessage) {
+  async handleAnswer(answerMessage: any) {
     if (this._pcAvailable) {
       await this._negotiator.handleAnswer(answerMessage.answer);
       this.open = true;
@@ -99,6 +124,8 @@ class Connection extends EventEmitter {
     } else {
       logger.log(`Queuing ANSWER message in ${this.id} from ${this.remoteId}`);
       this._queuedMessages.push({
+        // @ts-ignore
+        // Enum library may provide key from enum count
         type: config.MESSAGE_TYPES.SERVER.ANSWER.key,
         payload: answerMessage,
       });
@@ -109,11 +136,13 @@ class Connection extends EventEmitter {
    * Handle a candidate message from the remote peer.
    * @param {object} candidateMessage - Message object containing a candidate.
    */
-  handleCandidate(candidateMessage) {
+  handleCandidate(candidateMessage: any) {
     // The orginator(caller) should wait for the remote ANSWER arrival and
     // setRemoteDescription(ANSWER) before handleCandidate(addIceCandidate).
     if (this._negotiator.originator && !this._negotiator.hasRemoteDescription) {
       this._queuedMessages.push({
+        // @ts-ignore
+        // Enum library may provide key from enum count
         type: config.MESSAGE_TYPES.SERVER.CANDIDATE.key,
         payload: candidateMessage,
       });
@@ -127,6 +156,8 @@ class Connection extends EventEmitter {
         `Queuing CANDIDATE message in ${this.id} from ${this.remoteId}`
       );
       this._queuedMessages.push({
+        // @ts-ignore
+        // Enum library may provide key from enum count
         type: config.MESSAGE_TYPES.SERVER.CANDIDATE.key,
         payload: candidateMessage,
       });
@@ -137,7 +168,7 @@ class Connection extends EventEmitter {
    * Handle an offer message from the remote peer. Allows an offer to be updated.
    * @param {object} offerMessage - Message object containing an offer.
    */
-  updateOffer(offerMessage) {
+  updateOffer(offerMessage: any) {
     if (this.open) {
       this._negotiator.handleOffer(offerMessage.offer);
     } else {
@@ -164,9 +195,13 @@ class Connection extends EventEmitter {
       switch (message.type) {
         // Should we remove this ANSWER block
         // because ANSWER should be handled immediately?
+        // @ts-ignore
+        // Enum library may provide key from enum count
         case config.MESSAGE_TYPES.SERVER.ANSWER.key:
           this.handleAnswer(message.payload);
           break;
+        // @ts-ignore
+        // Enum library may provide key from enum count
         case config.MESSAGE_TYPES.SERVER.CANDIDATE.key:
           this.handleCandidate(message.payload);
           break;
@@ -194,9 +229,13 @@ class Connection extends EventEmitter {
 
     this.open = false;
     this._negotiator.cleanup();
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.emit(Connection.EVENTS.close.key);
 
     if (forceClose) {
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Connection.EVENTS.forceClose.key);
     }
   }
@@ -206,6 +245,8 @@ class Connection extends EventEmitter {
    * @private
    */
   _setupNegotiatorMessageHandlers() {
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this._negotiator.on(Negotiator.EVENTS.answerCreated.key, answer => {
       const connectionAnswer = {
         answer: answer,
@@ -213,11 +254,15 @@ class Connection extends EventEmitter {
         connectionId: this.id,
         connectionType: this.type,
       };
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Connection.EVENTS.answer.key, connectionAnswer);
     });
 
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this._negotiator.on(Negotiator.EVENTS.offerCreated.key, offer => {
-      const connectionOffer = {
+      const connectionOffer: IConnectionOffer = {
         offer: offer,
         dst: this.remoteId,
         connectionId: this.id,
@@ -233,9 +278,13 @@ class Connection extends EventEmitter {
       if (this.dcInit) {
         connectionOffer.dcInit = this.dcInit;
       }
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Connection.EVENTS.offer.key, connectionOffer);
     });
 
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this._negotiator.on(Negotiator.EVENTS.iceCandidate.key, candidate => {
       const connectionCandidate = {
         candidate: candidate,
@@ -243,9 +292,13 @@ class Connection extends EventEmitter {
         connectionId: this.id,
         connectionType: this.type,
       };
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Connection.EVENTS.candidate.key, connectionCandidate);
     });
 
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this._negotiator.on(Negotiator.EVENTS.iceConnectionFailed.key, () => {
       this.close();
     });
@@ -259,7 +312,7 @@ class Connection extends EventEmitter {
   get peer() {
     logger.warn(
       `${this.constructor.name}.peer is deprecated and may be removed from a future version.` +
-        ` Please use ${this.constructor.name}.remoteId instead.`
+      ` Please use ${this.constructor.name}.remoteId instead.`
     );
     return this.remoteId;
   }

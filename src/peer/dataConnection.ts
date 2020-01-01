@@ -10,9 +10,20 @@ import config from '../shared/config';
 
 const DCEvents = new Enum(['open', 'data', 'error']);
 
+// @ts-ignore
+// FIXME: fix type error
 DCEvents.extend(Connection.EVENTS.enums);
 
 const DCSerializations = new Enum(['binary', 'binary-utf8', 'json', 'none']);
+
+interface IOption {
+  connectionId: string;
+  serialization: string;
+  label: 'binary' | 'json' | 'none';
+  dcInit: any;
+  queuedMessages: string;
+  payload: string;
+}
 
 /**
  * Class that manages data connections to other peers.
@@ -22,6 +33,10 @@ const DCSerializations = new Enum(['binary', 'binary-utf8', 'json', 'none']);
  * @property {boolean} _isOnOpenCalled
  */
 class DataConnection extends Connection {
+  public _idPrefix: string;
+  public type: string;
+  private _isOnOpenCalled: boolean;
+  public _options: Partial<IOption> = {};
   /**
    * Create a data connection to another peer.
    * @param {string} remoteId - The peerId of the peer you are connecting to.
@@ -34,7 +49,7 @@ class DataConnection extends Connection {
    * @param {string} [options.queuedMessages] - An array of messages that were already received before the connection was created.
    * @param {string} [options.payload] - An offer message that triggered creating this object.
    */
-  constructor(remoteId, options) {
+  constructor(remoteId: string, options: Partial<IOption>) {
     super(remoteId, options);
 
     this._idPrefix = 'dc_';
@@ -52,12 +67,18 @@ class DataConnection extends Connection {
     this.dcInit = this._options.dcInit || {};
 
     // Serialization is binary by default
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.serialization = DataConnection.SERIALIZATIONS.binary.key;
     if (this._options.serialization) {
+      // @ts-ignore
+      // Enum library may provide key from enum count
       if (!DataConnection.SERIALIZATIONS.get(this._options.serialization)) {
         // Can't emit error as there hasn't been a chance to set up listeners
         throw new Error('Invalid serialization');
-      }
+      } a
+      // @ts-ignore
+      // FIXME: serialization type mismatch
       this.serialization = this._options.serialization;
 
       if (this._isUnreliableDCInit(this.dcInit)) {
