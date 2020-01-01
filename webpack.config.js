@@ -3,7 +3,7 @@ const webpack = require('webpack');
 const config = {
   mode: 'development',
   entry: {
-    skyway: './src/peer.js',
+    skyway: './src/peer.ts',
   },
   output: {
     libraryTarget: 'umd',
@@ -14,7 +14,14 @@ const config = {
   },
   module: {
     rules: [
-      // keep this place for karma
+      {
+        test: /\.(ts|js)$/,
+        use: [
+          {
+            loader: 'babel-loader'
+          }
+        ]
+      }
     ],
   },
   plugins: [
@@ -30,7 +37,7 @@ if (process.env.NODE_ENV === 'production') {
   });
   const minConf = Object.assign({}, config, {
     mode: 'production',
-    entry: { 'skyway.min': './src/peer.js' },
+    entry: { 'skyway.min': './src/peer.ts' },
   });
 
   module.exports = [normalConf, minConf];

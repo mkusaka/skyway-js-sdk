@@ -21,12 +21,48 @@ const PeerEvents = new Enum([
   'disconnected',
 ]);
 
+interface ICallOptions {
+  // private?
+  originator: boolean;
+  stream: any;
+  pcConfig: any;
+  // public?
+  connectionId: string;
+  label: string;
+  audioBandwidth: number;
+  videoBandwidth: number;
+  videoCodec: string;
+  audioCodec: string;
+  audioReceiveEnabled: boolean;
+  videoReceiveEnabled: boolean;
+}
+
+interface IRoomOptions<T = any> {
+  // private?
+  pcConfig: T;
+  peerId: string;
+  // public?
+  mode: "sfu" | "mesh";
+  stream: MediaStream;
+  videoBandwidth: number;
+  audioBandwidth: number;
+  videoCodec: string;
+  audioCodec: string;
+}
+
 /**
  * Class that manages all p2p connections and rooms.
  * This class contains socket.io message handlers.
  * @extends EventEmitter
  */
 class Peer extends EventEmitter {
+  public connections: any;
+  public rooms: any;
+  private _queuedMessages: any;
+  public options: any;
+  private _pcConfig: any;
+  public id: string;
+  public socket: Socket;
   /**
    * Create new Peer instance. This is called by user application.
    * @param {string} [id] - User's peerId.
@@ -45,7 +81,7 @@ class Peer extends EventEmitter {
    + @param {number} [options.credential.ttl] - Time to live; The credential expires at timestamp + ttl.
    + @param {string} [options.credential.authToken] - Credential token calculated with HMAC.
    */
-  constructor(id, options) {
+  constructor(id: string, options: any) {
     super();
 
     this.connections = {};
@@ -61,8 +97,18 @@ class Peer extends EventEmitter {
       id = id.toString();
     }
 
-    const defaultOptions = {
-      debug: logger.LOG_LEVELS.NONE,
+    interface PeerOptions {
+      debug: number;
+      secure: boolean;
+      config: typeof config.defaultConfig;
+      turn: boolean;
+      dispatcherSecure: boolean;
+      dispatcherHost: string;
+      dispatcherPort: number;
+    }
+    const defaultOptions: PeerOptions = {
+      // @ts-ignore
+      debug: logger.LOG_LEVELS.NONE, // TODO: logger type
       secure: true,
       config: config.defaultConfig,
       turn: true,
@@ -111,9 +157,11 @@ class Peer extends EventEmitter {
    * @param {string} [options.audioCodec] - A video codec like 'PCMU'
    * @param {boolean} [options.videoReceiveEnabled] - A flag to set video recvonly
    * @param {boolean} [options.audioReceiveEnabled] - A flag to set audio recvonly
+   * 
    * @return {MediaConnection} An instance of MediaConnection.
    */
-  call(peerId, stream, options = {}) {
+
+  call(peerId, stream, options: Partial<ICallOptions> = {}) {
     if (!this._checkOpenStatus()) {
       return;
     }
@@ -140,7 +188,7 @@ class Peer extends EventEmitter {
    *                  One of 'binary', 'json' or 'none'.
    * @return {DataConnection} An instance of DataConnection.
    */
-  connect(peerId, options = {}) {
+  connect(peerId, options: Partial<ICallOptions> = {}) {
     if (!this._checkOpenStatus()) {
       return;
     }
@@ -167,15 +215,17 @@ class Peer extends EventEmitter {
    * @param {boolean} [options.audioReceiveEnabled] - A flag to set audio recvonly
    * @return {SFURoom|MeshRoom} - An instance of SFURoom or MeshRoom.
    */
-  joinRoom(roomName, roomOptions = {}) {
+  joinRoom(roomName, roomOptions: Partial<IRoomOptions> = {}) {
     if (!this._checkOpenStatus()) {
       return;
     }
 
     if (!roomName) {
-      const err = new Error('Room name must be defined.');
+      const err: Error & { type?: string } = new Error('Room name must be defined.');
       err.type = 'room-error';
       logger.error(err);
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Peer.EVENTS.error.key, err);
       return null;
     }
@@ -234,6 +284,8 @@ class Peer extends EventEmitter {
   disconnect() {
     if (this.open) {
       this.socket.close();
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Peer.EVENTS.disconnected.key, this.id);
     }
   }
@@ -267,7 +319,7 @@ class Peer extends EventEmitter {
       return;
     }
 
-    cb = cb || function() {};
+    cb = cb || function () { };
     const self = this;
     const http = new XMLHttpRequest();
 
@@ -277,22 +329,24 @@ class Peer extends EventEmitter {
     http.open('get', url, true);
 
     /* istanbul ignore next */
-    http.onerror = function() {
+    http.onerror = function () {
       self._abort('server-error', 'Could not get peers from the server.');
       cb([]);
     };
-    http.onreadystatechange = function() {
+    http.onreadystatechange = function () {
       if (http.readyState !== 4) {
         return;
       }
       if (http.status === 401) {
         cb([]);
-        const err = new Error(
+        const err: Error & { type?: string } = new Error(
           "It doesn't look like you have permission to list peers IDs. " +
-            'Please enable the SkyWay REST API on dashboard'
+          'Please enable the SkyWay REST API on dashboard'
         );
         err.type = 'list-error';
         logger.error(err);
+        // @ts-ignore
+        // Enum library may provide key from enum count
         self.emit(Peer.EVENTS.error.key, err);
       } else if (http.status === 200) {
         cb(JSON.parse(http.responseText));
@@ -320,15 +374,17 @@ class Peer extends EventEmitter {
   _emitNotConnectedError() {
     logger.warn(
       'You cannot connect to a new Peer because you are not connecting to SkyWay server now.' +
-        'You can create a new Peer to reconnect, or call reconnect() ' +
-        'on this peer if you believe its ID to still be available.'
+      'You can create a new Peer to reconnect, or call reconnect() ' +
+      'on this peer if you believe its ID to still be available.'
     );
 
-    const err = new Error(
+    const err: Error & { type?: string } = new Error(
       'Cannot connect to new Peer before connecting to SkyWay server or after disconnecting from the server.'
     );
     err.type = 'disconnected';
     logger.error(err);
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.emit(Peer.EVENTS.error.key, err);
   }
 
@@ -358,9 +414,11 @@ class Peer extends EventEmitter {
       // If we haven't explicitly disconnected, emit error and disconnect.
       this.disconnect();
 
-      const err = new Error('Lost connection to server.');
+      const err: Error & { type?: string } = new Error('Lost connection to server.');
       err.type = 'socket-error';
       logger.error(err);
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Peer.EVENTS.error.key, err);
     });
 
@@ -396,6 +454,7 @@ class Peer extends EventEmitter {
       roomType: 'sfu',
     };
 
+    // @ts-ignore
     this.socket.send(config.MESSAGE_TYPES.CLIENT.ROOM_JOIN.key, data);
 
     return sfuRoom;
@@ -430,6 +489,7 @@ class Peer extends EventEmitter {
       roomType: 'mesh',
     };
 
+    // @ts-ignore
     this.socket.send(config.MESSAGE_TYPES.CLIENT.ROOM_JOIN.key, data);
 
     return meshRoom;
@@ -440,6 +500,7 @@ class Peer extends EventEmitter {
    * @private
    */
   _setupMessageHandlers() {
+    // @ts-ignore
     this.socket.on(config.MESSAGE_TYPES.SERVER.OPEN.key, openMessage => {
       this.id = openMessage.peerId;
       this._pcConfig = Object.assign({}, this.options.config);
@@ -493,22 +554,29 @@ class Peer extends EventEmitter {
         logger.log('SkyWay TURN Server is unavailable');
       }
 
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Peer.EVENTS.open.key, this.id);
     });
 
+    // @ts-ignore
     this.socket.on(config.MESSAGE_TYPES.SERVER.ERROR.key, error => {
-      const err = new Error(error.message);
+      const err: Error & { type?: string } = new Error(error.message);
       err.type = error.type;
       logger.error(err);
+      // @ts-ignore
+      // Enum library may provide key from enum count
       this.emit(Peer.EVENTS.error.key, err);
     });
 
+    // @ts-ignore
     this.socket.on(config.MESSAGE_TYPES.SERVER.LEAVE.key, peerId => {
       logger.log(`Received leave message from ${peerId}`);
       this._cleanupPeer(peerId);
     });
 
     this.socket.on(
+      // @ts-ignore
       config.MESSAGE_TYPES.SERVER.FORCE_CLOSE.key,
       ({ src: remoteId, connectionId }) => {
         // select a force closing connection and Close it.
@@ -521,13 +589,16 @@ class Peer extends EventEmitter {
     );
 
     this.socket.on(
+      // @ts-ignore
       config.MESSAGE_TYPES.SERVER.AUTH_EXPIRES_IN.key,
       remainingSec => {
         logger.log(`Credential expires in ${remainingSec}`);
+        // @ts-ignore
         this.emit(Peer.EVENTS.expiresin.key, remainingSec);
       }
     );
 
+    // @ts-ignore
     this.socket.on(config.MESSAGE_TYPES.SERVER.OFFER.key, offerMessage => {
       // handle mesh room offers
       const roomName = offerMessage.roomName;
@@ -553,6 +624,8 @@ class Peer extends EventEmitter {
         connection = new MediaConnection(offerMessage.src, {
           connectionId: connectionId,
           payload: offerMessage,
+          // @ts-ignore this option exist in parent class of dataconnection.
+          // ts does not infer it. so in this time, ignore this error
           metadata: offerMessage.metadata,
           originator: false,
           queuedMessages: this._queuedMessages[connectionId],
@@ -563,11 +636,14 @@ class Peer extends EventEmitter {
         logger.log('MediaConnection created in OFFER');
 
         this._addConnection(offerMessage.src, connection);
+        // @ts-ignore
         this.emit(Peer.EVENTS.call.key, connection);
       } else if (offerMessage.connectionType === 'data') {
         connection = new DataConnection(offerMessage.src, {
           connectionId: connectionId,
           payload: offerMessage,
+          // @ts-ignore this option exist in parent class of dataconnection.
+          // ts does not infer it. so in this time, ignore this error
           metadata: offerMessage.metadata,
           label: offerMessage.label,
           dcInit: offerMessage.dcInit,
@@ -580,6 +656,8 @@ class Peer extends EventEmitter {
         logger.log('DataConnection created in OFFER');
 
         this._addConnection(offerMessage.src, connection);
+        // @ts-ignore
+        // Enum library may provide key from enum count
         this.emit(Peer.EVENTS.connection.key, connection);
       } else {
         logger.warn(
@@ -591,6 +669,8 @@ class Peer extends EventEmitter {
       delete this._queuedMessages[connectionId];
     });
 
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.socket.on(config.MESSAGE_TYPES.SERVER.ANSWER.key, answerMessage => {
       // handle mesh room answers
       const roomName = answerMessage.roomName;
@@ -615,6 +695,8 @@ class Peer extends EventEmitter {
         // Should we remove this storing
         // because answer should be handled immediately after its arrival?
         this._storeMessage(
+          // @ts-ignore
+          // Enum library may provide key from enum count
           config.MESSAGE_TYPES.SERVER.ANSWER.key,
           answerMessage
         );
@@ -622,6 +704,8 @@ class Peer extends EventEmitter {
     });
 
     this.socket.on(
+      // @ts-ignore
+      // Enum library may provide key from enum count
       config.MESSAGE_TYPES.SERVER.CANDIDATE.key,
       candidateMessage => {
         // handle mesh room candidates
@@ -647,6 +731,8 @@ class Peer extends EventEmitter {
           // Store candidate in the queue so that the candidate can be added
           // after setRemoteDescription completed.
           this._storeMessage(
+            // @ts-ignore
+            // Enum library may provide key from enum count
             config.MESSAGE_TYPES.SERVER.CANDIDATE.key,
             candidateMessage
           );
@@ -655,6 +741,8 @@ class Peer extends EventEmitter {
     );
 
     this.socket.on(
+      // @ts-ignore
+      // Enum library may provide key from enum count
       config.MESSAGE_TYPES.SERVER.ROOM_USER_JOIN.key,
       roomUserJoinMessage => {
         const room = this.rooms[roomUserJoinMessage.roomName];
@@ -665,6 +753,8 @@ class Peer extends EventEmitter {
     );
 
     this.socket.on(
+      // @ts-ignore
+      // Enum library may provide key from enum count
       config.MESSAGE_TYPES.SERVER.ROOM_USER_LEAVE.key,
       roomUserLeaveMessage => {
         const room = this.rooms[roomUserLeaveMessage.roomName];
@@ -675,6 +765,8 @@ class Peer extends EventEmitter {
     );
 
     this.socket.on(
+      // @ts-ignore
+      // Enum library may provide key from enum count
       config.MESSAGE_TYPES.SERVER.ROOM_DATA.key,
       roomDataMessage => {
         const room = this.rooms[roomDataMessage.roomName];
@@ -685,6 +777,8 @@ class Peer extends EventEmitter {
     );
 
     this.socket.on(
+      // @ts-ignore
+      // Enum library may provide key from enum count
       config.MESSAGE_TYPES.SERVER.ROOM_LOGS.key,
       roomLogMessage => {
         const room = this.rooms[roomLogMessage.roomName];
@@ -695,6 +789,8 @@ class Peer extends EventEmitter {
     );
 
     this.socket.on(
+      // @ts-ignore
+      // Enum library may provide key from enum count
       config.MESSAGE_TYPES.SERVER.ROOM_USERS.key,
       roomUserListMessage => {
         const room = this.rooms[roomUserListMessage.roomName];
@@ -708,6 +804,8 @@ class Peer extends EventEmitter {
       }
     );
 
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.socket.on(config.MESSAGE_TYPES.SERVER.SFU_OFFER.key, offerMessage => {
       const room = this.rooms[offerMessage.roomName];
       if (room) {
@@ -722,25 +820,39 @@ class Peer extends EventEmitter {
    * @param {MediaConnection|DataConnection} connection - The connection to be set up.
    * @private
    */
-  _setupConnectionMessageHandlers(connection) {
+  _setupConnectionMessageHandlers(connection: MediaConnection | DataConnection) {
+    // @ts-ignore
+    // Enum library may provide key from enum count
     connection.on(Connection.EVENTS.candidate.key, candidateMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SEND_CANDIDATE.key,
         candidateMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     connection.on(Connection.EVENTS.answer.key, answerMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SEND_ANSWER.key,
         answerMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     connection.on(Connection.EVENTS.offer.key, offerMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SEND_OFFER.key,
         offerMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     connection.on(Connection.EVENTS.forceClose.key, () => {
       const forceCloseMessage = {
         dst: connection.remoteId,
@@ -748,6 +860,8 @@ class Peer extends EventEmitter {
       };
 
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SEND_FORCE_CLOSE.key,
         forceCloseMessage
       );
@@ -760,21 +874,33 @@ class Peer extends EventEmitter {
    * @private
    */
   _setupRoomMessageHandlers(room) {
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(SFURoom.MESSAGE_EVENTS.broadcast.key, sendMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.ROOM_SEND_DATA.key,
         sendMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(SFURoom.MESSAGE_EVENTS.getLog.key, getLogMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.ROOM_GET_LOGS.key,
         getLogMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(SFURoom.MESSAGE_EVENTS.leave.key, leaveMessage => {
       delete this.rooms[room.name];
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.ROOM_LEAVE.key,
         leaveMessage
       );
@@ -789,20 +915,32 @@ class Peer extends EventEmitter {
   _setupSFURoomMessageHandlers(room) {
     this._setupRoomMessageHandlers(room);
 
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(SFURoom.MESSAGE_EVENTS.offerRequest.key, sendMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SFU_GET_OFFER.key,
         sendMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(SFURoom.MESSAGE_EVENTS.answer.key, answerMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SFU_ANSWER.key,
         answerMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(SFURoom.MESSAGE_EVENTS.candidate.key, candidateMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SFU_CANDIDATE.key,
         candidateMessage
       );
@@ -817,26 +955,42 @@ class Peer extends EventEmitter {
   _setupMeshRoomMessageHandlers(room) {
     this._setupRoomMessageHandlers(room);
 
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(MeshRoom.MESSAGE_EVENTS.offer.key, offerMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SEND_OFFER.key,
         offerMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(MeshRoom.MESSAGE_EVENTS.answer.key, answerMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SEND_ANSWER.key,
         answerMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(MeshRoom.MESSAGE_EVENTS.candidate.key, candidateMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.SEND_CANDIDATE.key,
         candidateMessage
       );
     });
+    // @ts-ignore
+    // Enum library may provide key from enum count
     room.on(MeshRoom.MESSAGE_EVENTS.getPeers.key, requestMessage => {
       this.socket.send(
+        // @ts-ignore
+        // Enum library may provide key from enum count
         config.MESSAGE_TYPES.CLIENT.ROOM_GET_USERS.key,
         requestMessage
       );
@@ -853,9 +1007,11 @@ class Peer extends EventEmitter {
     logger.error('Aborting!');
     this.disconnect();
 
-    const err = new Error(message);
+    const err: Error & { type?: string } = new Error(message);
     err.type = type;
     logger.error(err);
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.emit(Peer.EVENTS.error.key, err);
   }
 
@@ -900,6 +1056,8 @@ class Peer extends EventEmitter {
         this._cleanupPeer(peer);
       }
     }
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.emit(Peer.EVENTS.close.key);
   }
 
