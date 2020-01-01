@@ -61,8 +61,8 @@ class Peer extends EventEmitter {
   private _queuedMessages: any;
   public options: any;
   private _pcConfig: any;
-  public id: string;
-  public socket: Socket;
+  public id?: string;
+  public socket?: Socket;
   /**
    * Create new Peer instance. This is called by user application.
    * @param {string} [id] - User's peerId.
@@ -92,6 +92,7 @@ class Peer extends EventEmitter {
 
     if (id && id.constructor === Object) {
       options = id;
+      // @ts-ignore FIXME: i dont know why reassign id with undefined
       id = undefined;
     } else if (id) {
       id = id.toString();
@@ -161,7 +162,7 @@ class Peer extends EventEmitter {
    * @return {MediaConnection} An instance of MediaConnection.
    */
 
-  call(peerId, stream, options: Partial<ICallOptions> = {}) {
+  call(peerId: string, stream: MediaStream, options: Partial<ICallOptions> = {}) {
     if (!this._checkOpenStatus()) {
       return;
     }

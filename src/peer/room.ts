@@ -25,11 +25,39 @@ const MessageEvents = [
 const RoomEvents = new Enum(Events);
 const RoomMessageEvents = new Enum(MessageEvents);
 
+
+interface ICallOptions {
+  // private?
+  originator: boolean;
+  stream: any;
+  pcConfig: any;
+  // public?
+  connectionId: string;
+  label: string;
+  audioBandwidth: number;
+  videoBandwidth: number;
+  videoCodec: string;
+  audioCodec: string;
+  audioReceiveEnabled: boolean;
+  videoReceiveEnabled: boolean;
+}
+
+interface IData {
+  data: ArrayBuffer;
+  src: string;
+  roomName?: string;
+}
+
 /**
  * Class to manage rooms where one or more users can participate
  * @extends EventEmitter
  */
 class Room extends EventEmitter {
+  public name: string;
+  private _options: Partial<ICallOptions>;
+  private _peerId: string;
+  private _localStream: any;
+  private _pcConfig: any;
   /**
    * Creates a Room instance.
    * @param {string} name - Room name.
@@ -44,7 +72,7 @@ class Room extends EventEmitter {
    * @param {boolean} [options.videoReceiveEnabled] - A flag to set video recvonly
    * @param {boolean} [options.audioReceiveEnabled] - A flag to set audio recvonly
    */
-  constructor(name, peerId, options = {}) {
+  constructor(name: string, peerId: string, options: Partial<ICallOptions> = {}) {
     super();
 
     // Abstract class
@@ -68,11 +96,13 @@ class Room extends EventEmitter {
    * @param {string} dataMessage.src -  The peerId of the peer who sent the data.
    * @param {string} [dataMessage.roomName] -  The name of the room user is joining.
    */
-  handleData(dataMessage) {
+  handleData(dataMessage: IData) {
     const message = {
       data: dataMessage.data,
       src: dataMessage.src,
     };
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.emit(Room.EVENTS.data.key, message);
   }
 
@@ -81,7 +111,9 @@ class Room extends EventEmitter {
    * It emits log event with room's logs.
    * @param {Array} logs - An array containing JSON text.
    */
-  handleLog(logs) {
+  handleLog<T = any>(logs: T[]) {
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.emit(Room.EVENTS.log.key, logs);
   }
 
@@ -92,6 +124,8 @@ class Room extends EventEmitter {
     const message = {
       roomName: this.name,
     };
+    // @ts-ignore
+    // Enum library may provide key from enum count
     this.emit(Room.MESSAGE_EVENTS.getLog.key, message);
   }
 

@@ -10,7 +10,7 @@ class SdpUtil {
    * @param {RTCSessionDescriptionInit} offer unified plan SDP
    * @return {RTCSessionDescription} Plan B SDP
    */
-  unifiedToPlanB(offer) {
+  unifiedToPlanB(offer: RTCSessionDescriptionInit) {
     const interop = new Interop();
     const oldSdp = interop.toPlanB(offer).sdp;
 
@@ -43,7 +43,7 @@ class SdpUtil {
    * @param {number} bandwidth - video Bandwidth (kbps)
    * @return {string} A SDP which include b=AS in m=video section
    */
-  addVideoBandwidth(sdp, bandwidth) {
+  addVideoBandwidth(sdp: string, bandwidth: number) {
     this._validateBandwidth(bandwidth);
     return this._addBandwidth(sdp, bandwidth, 'video');
   }
@@ -54,7 +54,7 @@ class SdpUtil {
    * @param {number} bandwidth - audio Bandwidth (kbps)
    * @return {string} A SDP which include b=AS in m=audio section
    */
-  addAudioBandwidth(sdp, bandwidth) {
+  addAudioBandwidth(sdp: string, bandwidth: number) {
     this._validateBandwidth(bandwidth);
     return this._addBandwidth(sdp, bandwidth, 'audio');
   }
@@ -66,7 +66,7 @@ class SdpUtil {
    * @param {string} codec - Video codec name (e.g. H264)
    * @return {string} A SDP which contains the codecs except argument's codec
    */
-  filterVideoCodec(sdp, codec) {
+  filterVideoCodec(sdp: string, codec: string) {
     return this._filterCodec(sdp, codec, 'video');
   }
 
@@ -77,7 +77,7 @@ class SdpUtil {
    * @param {string} codec - Audio codec name (e.g. PCMU)
    * @return {string} A SDP which contains the codecs except argument's codec
    */
-  filterAudioCodec(sdp, codec) {
+  filterAudioCodec(sdp: string, codec: string) {
     return this._filterCodec(sdp, codec, 'audio');
   }
 
@@ -97,7 +97,7 @@ class SdpUtil {
    * @param {string} sdp - A SDP.
    * @return {string} A SDP which has `a=msid-semantic:WMS *`.
    */
-  ensureUnifiedPlan(sdp) {
+  ensureUnifiedPlan(sdp: string) {
     const delimiter = '\r\n';
     return sdp
       .split(delimiter)
@@ -118,7 +118,7 @@ class SdpUtil {
    * @return {string} A SDP which contains the codecs except argument's codec
    * @private
    */
-  _filterCodec(sdp, codec, mediaType) {
+  _filterCodec(sdp: string, codec: string, mediaType: string) {
     if (codec === undefined) {
       throw new Error('codec is not passed');
     }
@@ -135,7 +135,7 @@ class SdpUtil {
         // Note, there are cases the length of Array is more than 2.
         //   e.g. Firefox generates two 'H264' video codecs: 126, 97;
         //   e.g. Chrome generates three 'CN' audio codecs:  106, 105, 13;
-        const payloadNumbers = media.rtp.reduce((prev, curr) => {
+        const payloadNumbers = media.rtp.reduce<number[]>((prev, curr) => {
           return [...prev, curr.payload];
         }, []);
 
@@ -153,6 +153,7 @@ class SdpUtil {
 
         // rtcpFb is optional. Especially, m=audio doesn't have rtcpFb.
         if (media.rtcpFb) {
+          // @ts-ignore FIXME: filter does not exist...
           media.rtcpFb = media.rtcpFb.filter(rtcpFb => {
             return payloadNumbers.includes(rtcpFb.payload);
           });
@@ -175,10 +176,11 @@ class SdpUtil {
    * @return {string} A SDP which include b=AS in m=audio or m=video section
    * @private
    */
-  _addBandwidth(sdp, bandwidth, mediaType) {
+  _addBandwidth(sdp: string, bandwidth: number, mediaType: string) {
     const sdpObject = sdpTransform.parse(sdp);
     sdpObject.media = sdpObject.media.map(media => {
       if (media.type === mediaType) {
+        // @ts-ignore FIXME: bandwith is not Array.... why...
         media.bandwidth = [
           {
             // Chrome supports only 'AS'
@@ -202,11 +204,12 @@ class SdpUtil {
    * @param {number} bandwidth - bandwidth of 'audio' or 'video'
    * @private
    */
-  _validateBandwidth(bandwidth) {
+  _validateBandwidth(bandwidth: number) {
     if (bandwidth === undefined) {
       throw new Error('bandwidth is not passed');
     }
 
+    // @ts-ignore bandwith is number, but test does not execute with number.
     if (!/^\d+$/.test(bandwidth)) {
       throw new Error(`${bandwidth} is not a number`);
     }
